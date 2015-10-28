@@ -61,7 +61,7 @@ def preprocess_trainingdata(dataset):
 	
 
 
-def train(att_val_lbl,T,att_val_list,N,dataset):
+def train(att_val_lbl,T,att_val_list,N,dataset,alpha_list):
 
 	wts_vec = dict()
 	for i in range(N):
@@ -82,7 +82,9 @@ def train(att_val_lbl,T,att_val_list,N,dataset):
 	Proba_Elabel = (e_label)/float(p_label + e_label)
 	
 	entropy_dataset = (-Proba_Plabel*math.log(Proba_Plabel,2)) + (-Proba_Elabel*math.log(Proba_Elabel,2))
+	epsilon_list = []
 	
+	learned_decision_tree = dict()
 	
 	
 	for iterations in range(T):
@@ -131,8 +133,9 @@ def train(att_val_lbl,T,att_val_list,N,dataset):
 				max_att_val = gain
 				max_att_idx =  cidx
 
-		print max_att_idx
+		#print max_att_idx
 		val_list = att_val_list[max_att_idx]
+		val_lbl = dict()
 		p_count = 0
 		e_count = 0
 		# code improvement needed, uncessary iterations
@@ -142,16 +145,78 @@ def train(att_val_lbl,T,att_val_list,N,dataset):
 					e_count = e_count + 1
 				elif datapoint[max_att_idx + 1] == val:
 					p_count = p_count + 1
-			print val, e_count, p_count
+			
+			if e_count > p_count:
+				val_lbl[val] = 'e'
+			else:
+				val_lbl[val] = 'p'
+
+
+			#print val, e_count, p_count
 			p_count = 0
 			e_count = 0
+		#print val_lbl
+		learned_decision_tree[str(max_att_idx) + str(iterations)] = val_lbl
+
+
+		epsilon = 0.0
+		alpha = 0.0
+		
+		for ridx,datapoint in enumerate(dataset):
+			attr = datapoint[max_att_idx+1]
+			#print val_lbl[attr], datapoint[0]
+			if datapoint[0] != val_lbl[attr]:
+				epsilon = epsilon + wts_vec[ridx]
+				
+		#print epsilon
+		epsilon_list.append(epsilon)
+		alpha = (1/float(2))*math.log((1 - epsilon)/epsilon)
+		#print alpha
+		alpha_list.append(alpha)
+
+		#print wts_vec
+		for ridx,datapoint in enumerate(dataset):
+			attr = datapoint[max_att_idx+1]
+			if datapoint[0] != val_lbl[attr]:
+				wts_vec[ridx] = wts_vec[ridx]*math.exp((-alpha)*(-1))
+				
+			else:
+				wts_vec[ridx] = wts_vec[ridx]*math.exp((-alpha)*(1))
+		#print wts_vec
+
+		sum_wts = 0.0
+		for key,val in wts_vec.items():
+			sum_wts = sum_wts + val
+
+		#print sum_wts
+
+		for key,val in wts_vec.items():
+			wts_vec[key] = wts_vec[key]/float(sum_wts)
+			#print key, wts_vec[key]
+
+
+	#print learned_decision_tree
+	#print alpha_list
+	return learned_decision_tree
+
+
+
+
+		
+
+
+
+
+
+
+
 
 
 
 
 				
 
-		return	
+		
 
 				
 				
@@ -193,8 +258,10 @@ def main():
 	#print dataset[0][0]	
 	#x_count(dataset)
 	att_val_lbl = preprocess_trainingdata(dataset)
+	alpha_list = []
 	#print len(dataset)
-	decisionTree_map = train(att_val_lbl,T,att_val_list,len(dataset),dataset)
+	learned_decision_tree = train(att_val_lbl,T,att_val_list,len(dataset),dataset,alpha_list)
+	print alpha_list
 
 
 
