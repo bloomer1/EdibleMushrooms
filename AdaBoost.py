@@ -156,7 +156,7 @@ def train(att_val_lbl,T,att_val_list,N,dataset,alpha_list):
 			p_count = 0
 			e_count = 0
 		#print val_lbl
-		learned_decision_tree[str(max_att_idx) + str(iterations)] = val_lbl
+		learned_decision_tree[str(max_att_idx) + '#' + str(iterations)] = val_lbl
 
 
 		epsilon = 0.0
@@ -202,7 +202,55 @@ def train(att_val_lbl,T,att_val_list,N,dataset,alpha_list):
 
 
 
-		
+def test(test_file,learned_decision_tree,alpha_list):
+
+	testset = read_trainingdata(test_file)
+	predicted_table = dict()
+	accuracy = 0.0
+	correct_records = 0
+	total_records = len(testset)
+	#print total_records
+	
+	#print learned_decision_tree
+	#print alpha_list
+	
+	
+	for ridx,testpoint in enumerate(testset):
+		res_list = []
+		for key,val in learned_decision_tree.items():
+			attr = key.split('#')[0]
+			test_attr_val = testpoint[int(attr)+1]
+			#print attr, test_attr_val
+			train_attr_lbl = val[test_attr_val]
+			res_list.append(train_attr_lbl)
+		#print res_list
+		final_res = 0.0
+		for idx,alpha_val in enumerate(alpha_list):
+			if res_list[idx] == 'e':
+				final_res = final_res + alpha_val*(1)
+			else:
+				final_res = final_res + alpha_val*(-1)
+
+		if final_res > 0:
+			predicted_table[ridx] = 'e'
+		else:
+			predicted_table[ridx] = 'p'
+	'''
+	for key,val in predicted_table.items():
+		print key,val
+	'''
+
+	for ridx,testpoint in enumerate(testset):
+		if testpoint[0] == predicted_table[ridx]:
+			correct_records = correct_records + 1
+
+
+	accuracy = correct_records/float(total_records)
+	return accuracy
+
+
+	
+
 
 
 
@@ -261,7 +309,18 @@ def main():
 	alpha_list = []
 	#print len(dataset)
 	learned_decision_tree = train(att_val_lbl,T,att_val_list,len(dataset),dataset,alpha_list)
-	print alpha_list
+	#print alpha_list
+	#print learned_decision_tree
+
+	accuracy = test(test_file,learned_decision_tree,alpha_list)
+
+	print accuracy
+
+	for alpha_val in alpha_list:
+		print alpha_val
+
+
+
 
 
 
